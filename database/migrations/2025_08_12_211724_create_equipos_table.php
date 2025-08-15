@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('equipos', function (Blueprint $table) {
@@ -22,13 +19,17 @@ return new class extends Migration
             $table->string('area')->nullable();
             $table->string('estado')->nullable();
 
+            // Campos para panoramas
+            $table->string('panorama_filename')->nullable();
+            $table->string('panorama_thumbnail')->nullable();
+            $table->text('panorama_description')->nullable();
 
-            // SOLO rutas por ahora (clusters viene después)
+            // Relación con rutas
             $table->foreignId('ruta_id')->nullable()->constrained()->nullOnDelete();
             $table->integer('orden_en_ruta')->nullable();
             $table->string('qr_code_path')->nullable();
 
-            // TRABAJO DE CAMPO
+            // Trabajo de campo
             $table->boolean('inspeccionado')->default(false);
             $table->timestamp('fecha_inspeccion')->nullable();
             $table->foreignId('inspeccionado_por')->nullable()->constrained('users');
@@ -36,14 +37,11 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // ÍNDICES
+            // Índices
             $table->index(['latitud', 'longitud']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('equipos');

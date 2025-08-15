@@ -1,6 +1,3 @@
-/**
- * Controlador principal del mapa
- */
 class MapController {
     constructor() {
         this.map = null;
@@ -138,62 +135,438 @@ class MapController {
     }
 
     // Cargar panoramas de ejemplo
+
     loadSamplePanoramas() {
         const loading = document.getElementById('loading');
         loading.classList.remove('hidden');
 
-        // Simular carga asíncrona
         setTimeout(() => {
-            const samplePanoramas = [
-                {
-                    id: 1,
-                    latitude: -12.0464,
-                    longitude: -77.0428,
-                    filename: "Lima_Centro_360.jpg",
-                    address: "Plaza Mayor, Lima Centro",
-                    thumbnail: "https://via.placeholder.com/200x120/2196F3/white?text=Lima+Centro"
-                },
-                {
-                    id: 2,
-                    latitude: -12.1211,
-                    longitude: -77.0280,
-                    filename: "San_Isidro_360.jpg",
-                    address: "Av. El Bosque, San Isidro",
-                    thumbnail: "https://via.placeholder.com/200x120/4CAF50/white?text=San+Isidro"
-                },
-                {
-                    id: 3,
-                    latitude: -12.0988,
-                    longitude: -77.0347,
-                    filename: "Miraflores_360.jpg",
-                    address: "Malecón de Miraflores",
-                    thumbnail: "https://via.placeholder.com/200x120/FF9800/white?text=Miraflores"
-                },
-                {
-                    id: 4,
-                    latitude: -12.0719,
-                    longitude: -77.0474,
-                    filename: "Barranco_360.jpg",
-                    address: "Puente de los Suspiros, Barranco",
-                    thumbnail: "https://via.placeholder.com/200x120/9C27B0/white?text=Barranco"
-                },
-                {
-                    id: 5,
-                    latitude: -12.0629,
-                    longitude: -77.0365,
-                    filename: "Pueblo_Libre_360.jpg",
-                    address: "Av. La Marina, Pueblo Libre",
-                    thumbnail: "https://via.placeholder.com/200x120/F44336/white?text=Pueblo+Libre"
+            try {
+                // OBTENER EQUIPOS desde PHP (como antes, pero ahora desde tu BD)
+                const equiposData = window.equiposData || [];
+                const rutaInfo = window.rutaInfo || {};
+
+                console.log('🔍 DEBUG - Cargando equipos desde BD:');
+                console.log('- Total equipos desde PHP:', equiposData.length);
+                console.log('- Ruta info:', rutaInfo);
+                console.log('- Equipos data:', equiposData);
+
+                if (!equiposData || equiposData.length === 0) {
+                    console.warn('❌ NO HAY EQUIPOS - Array está vacío');
+                    this.showNotification(`❌ No hay equipos en la ruta: "${rutaInfo.nombre}"`, 'warning');
+                    loading.classList.add('hidden');
+                    return;
                 }
-            ];
 
-            window.dataManager.setPanoramas(samplePanoramas);
-            loading.classList.add('hidden');
+                // CONVERTIR EQUIPOS AL FORMATO QUE ESPERA TU SISTEMA ORIGINAL
+                const panoramasFormateados = equiposData.map((equipo, index) => {
+                    console.log(`🔧 Convirtiendo equipo ${index + 1}:`, {
+                        id: equipo.id,
+                        identificador: equipo.identificador,
+                        latitud: equipo.latitude,
+                        longitud: equipo.longitude
+                    });
 
-            // Auto-fit al cargar los datos
-            this.fitMapToPanoramas();
+                    const lat = parseFloat(equipo.latitude);
+                    const lng = parseFloat(equipo.longitude);
 
-        }, 1000);
+                    if (isNaN(lat) || isNaN(lng)) {
+                        console.warn(`⚠️ Coordenadas inválidas para ${equipo.identificador}`);
+                        return null;
+                    }
+
+                    // FORMATO EXACTO que espera tu MapController original
+                    return {
+                        id: equipo.id,                    // ← ID único
+                        latitude: lat,                    // ← Coordenada Y
+                        longitude: lng,                   // ← Coordenada X
+                        filename: equipo.filename || `${equipo.identificador}_360.jpg`,  // ← Nombre archivo
+                        address: equipo.address || equipo.direccion || `Equipo ${equipo.identificador}`, // ← Dirección
+                        thumbnail: equipo.thumbnail || this.generateEquipoThumbnail(equipo), // ← Thumbnail
+
+                        // Información adicional para popups
+                        identificador: equipo.identificador,
+                        tipo: equipo.tipo,
+                        estado: equipo.estado,
+                        area: equipo.area,
+                        orden_en_ruta: equipo.orden_en_ruta,
+                        inspeccionado: equipo.inspeccionado,
+                        observaciones: equipo.observaciones
+                    };
+                }).filter(panorama => panorama !== null); // Filtrar nulls
+
+                console.log('📍 PANORAMAS FORMATEADOS PARA EL MAPA:');
+                console.log(`- Equipos procesados: ${equiposData.length}`);
+                console.log(`- Panoramas válidos: ${panoramasFormateados.length}`);
+                console.log('- Panoramas:', panoramasFormateados.map(p => ({
+                    id: p.id,
+                    coords: [p.latitude, p.longitude],
+                    filename: p.filename
+                })));
+
+                if (panoramasFormateados.length === 0) {
+                    console.error('❌ NO SE CREARON PANORAMAS VÁLIDOS');
+                    this.showNotification('❌ No se pudieron procesar los equipos como marcadores', 'error');
+                    loading.classList.add('hidden');
+                    return;
+                }
+
+                // USAR TU SISTEMA ORIGINAL - Llamar a dataManager.setPanoramas()
+                console.log('🗺️ Enviando panoramas al DataManager...');
+                window.dataManager.setPanoramas(panoramasFormateados);
+
+                loading.classList.add('hidden');
+
+                // Mensaje de éxito
+                this.showNotification(
+                    `✅ ${panoramasFormateados.length} equipos cargados como marcadores en el mapa`,
+                    'success'
+                );
+
+                // Auto-ajustar mapa (tu función original)
+                this.fitMapToPanoramas();
+
+                console.log('🎯 EQUIPOS CARGADOS EXITOSAMENTE EN EL MAPA');
+                console.log('- Cada equipo ahora aparece como un marcador');
+                console.log('- El sistema usa tu MapController original');
+
+            } catch (error) {
+                console.error('💥 ERROR cargando equipos:', error);
+                loading.classList.add('hidden');
+
+                this.showNotification(`💥 Error: ${error.message}`, 'error');
+
+                // Debug en caso de error
+                console.log('🔍 DEBUG ERROR:');
+                console.log('- window.equiposData:', window.equiposData);
+                console.log('- window.rutaInfo:', window.rutaInfo);
+                console.log('- window.dataManager:', window.dataManager);
+            }
+        }, 500);
+    }
+
+// Generar thumbnail para equipos (helper function)
+    generateEquipoThumbnail(equipo) {
+        const coloresPorTipo = {
+            'antena': '2196F3',       // Azul
+            'repetidor': '4CAF50',    // Verde
+            'base': 'FF9800',         // Naranja
+            'movil': '9C27B0',        // Púrpura
+            'tower': '607D8B',        // Azul gris
+            'sensor': '00BCD4',       // Cian
+            'default': '9E9E9E'       // Gris
+        };
+
+        const color = coloresPorTipo[equipo.tipo] || coloresPorTipo['default'];
+        const texto = encodeURIComponent(equipo.identificador || 'EQ');
+
+        return `https://via.placeholder.com/200x120/${color}/white?text=${texto}`;
+    }
+    buildEquipoDescription(equipo) {
+        const partes = [];
+
+        partes.push(`🆔 <strong>Identificador:</strong> ${equipo.identificador}`);
+
+        if (equipo.tipo) {
+            partes.push(`🔧 <strong>Tipo:</strong> ${equipo.tipo.toUpperCase()}`);
+        }
+
+        if (equipo.estado) {
+            const estadoIcon = equipo.estado === 'activo' ? '✅' : (equipo.estado === 'inactivo' ? '❌' : '⚠️');
+            partes.push(`${estadoIcon} <strong>Estado:</strong> ${equipo.estado.toUpperCase()}`);
+        }
+
+        if (equipo.area) {
+            partes.push(`📍 <strong>Área:</strong> ${equipo.area}`);
+        }
+
+        if (equipo.altitud) {
+            partes.push(`⛰️ <strong>Altitud:</strong> ${equipo.altitud}m`);
+        }
+
+        if (equipo.orden_en_ruta) {
+            partes.push(`🔢 <strong>Orden en ruta:</strong> ${equipo.orden_en_ruta}`);
+        }
+
+        // Estado de inspección
+        if (equipo.inspeccionado) {
+            partes.push(`✅ <strong>Inspeccionado:</strong> ${equipo.fecha_inspeccion || 'Sí'}`);
+            if (equipo.observaciones) {
+                partes.push(`📝 <strong>Observaciones:</strong> ${equipo.observaciones}`);
+            }
+        } else {
+            partes.push(`⏳ <strong>Estado:</strong> Pendiente de inspección`);
+        }
+
+        return partes.join('<br>');
+    }
+
+
+// Función de fallback en caso de error
+    loadFallbackEquipos() {
+        console.warn('Cargando equipos de fallback...');
+        const fallbackEquipos = [
+            {
+                id: 'fallback_1',
+                latitude: -12.0464,
+                longitude: -77.0428,
+                filename: "Equipo_Fallback_360.jpg",
+                address: "Equipo de ejemplo - Datos no disponibles",
+                thumbnail: this.generateFallbackThumbnail('ejemplo'),
+                tipo: 'ejemplo',
+                estado: 'activo',
+                nombre: 'Equipo de Ejemplo'
+            }
+        ];
+
+        window.dataManager.setPanoramas(fallbackEquipos);
+        this.showNotification('Se cargaron equipos de ejemplo (datos no disponibles)', 'warning');
+    }
+
+// Función para mostrar información de la ruta
+    showRutaInfo(rutaInfo) {
+        const infoText = [];
+
+        if (rutaInfo.total_equipos) {
+            infoText.push(`📊 Total equipos: ${rutaInfo.total_equipos}`);
+        }
+
+        if (rutaInfo.distancia_km) {
+            infoText.push(`📏 Distancia: ${rutaInfo.distancia_km} km`);
+        }
+
+        if (rutaInfo.tiempo_estimado_minutos) {
+            infoText.push(`⏱️ Tiempo estimado: ${rutaInfo.tiempo_estimado_minutos} min`);
+        }
+
+        if (rutaInfo.estado) {
+            infoText.push(`📋 Estado: ${rutaInfo.estado}`);
+        }
+
+        if (infoText.length > 0) {
+            this.showNotification(infoText.join(' | '), 'info');
+        }
+    }
+
+// Función para mostrar notificaciones (reutilizada)
+    showNotification(message, type = 'info') {
+        const container = document.getElementById('notifications-container');
+        if (!container) return;
+
+        const notification = document.createElement('div');
+        const bgColor = {
+            'success': 'bg-green-500',
+            'error': 'bg-red-500',
+            'warning': 'bg-yellow-500',
+            'info': 'bg-blue-500'
+        }[type] || 'bg-gray-500';
+
+        notification.className = `${bgColor} text-white px-4 py-2 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full opacity-0 max-w-md`;
+        notification.innerHTML = `
+        <div class="flex items-center space-x-2">
+            <span class="text-sm">${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="text-white/70 hover:text-white ml-2">×</button>
+        </div>
+    `;
+
+        container.appendChild(notification);
+
+        // Animación de entrada
+        setTimeout(() => {
+            notification.classList.remove('translate-x-full', 'opacity-0');
+        }, 100);
+
+        // Auto-remover después de 8 segundos para mensajes informativos
+        const autoRemoveTime = type === 'info' ? 8000 : 5000;
+        setTimeout(() => {
+            notification.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, autoRemoveTime);
+    }
+// Generar thumbnail específico para equipos
+    generateEquipoThumbnail(equipo) {
+        const coloresPorTipo = {
+            'antena': '2196F3',       // Azul
+            'repetidor': '4CAF50',    // Verde
+            'base': 'FF9800',         // Naranja
+            'movil': '9C27B0',        // Púrpura
+            'tower': '607D8B',        // Azul gris
+            'sensor': '00BCD4',       // Cian
+            'unknown': '9E9E9E',      // Gris
+        };
+
+        const coloresPorEstado = {
+            'activo': null,           // Usar color del tipo
+            'inactivo': 'F44336',     // Rojo
+            'mantenimiento': 'FF9800', // Naranja
+            'error': 'F44336'         // Rojo
+        };
+
+        // Determinar color final
+        let color = coloresPorEstado[equipo.estado] || coloresPorTipo[equipo.tipo] || coloresPorTipo['unknown'];
+
+        // Texto para el placeholder
+        const texto = encodeURIComponent(equipo.identificador || equipo.tipo || 'EQ');
+
+        return `https://via.placeholder.com/200x120/${color}/white?text=${texto}`;
+    }
+
+// Mensaje de éxito con información específica de equipos
+    buildEquiposMessage(rutaInfo, equiposValidos, equiposTotal) {
+        const partes = [
+            `🗺️ Ruta: "${rutaInfo.nombre}"`,
+            `📍 ${equiposValidos.length}/${equiposTotal.length} equipos cargados`
+        ];
+
+        if (rutaInfo.progreso_inspeccion !== undefined) {
+            partes.push(`✅ ${rutaInfo.progreso_inspeccion}% inspeccionado`);
+        }
+
+        return partes.join(' | ');
+    }
+
+// Mostrar estadísticas de inspección
+    showInspectionStats(rutaInfo, equipos) {
+        const stats = [];
+
+        if (rutaInfo.equipos_inspeccionados !== undefined) {
+            stats.push(`✅ Inspeccionados: ${rutaInfo.equipos_inspeccionados}`);
+        }
+
+        if (rutaInfo.equipos_pendientes !== undefined) {
+            stats.push(`⏳ Pendientes: ${rutaInfo.equipos_pendientes}`);
+        }
+
+        if (rutaInfo.tipos_equipos && rutaInfo.tipos_equipos.length > 0) {
+            stats.push(`🔧 Tipos: ${rutaInfo.tipos_equipos.join(', ')}`);
+        }
+
+        if (rutaInfo.areas_cubiertas && rutaInfo.areas_cubiertas.length > 0) {
+            stats.push(`📍 Áreas: ${rutaInfo.areas_cubiertas.join(', ')}`);
+        }
+
+        if (stats.length > 0) {
+            this.showNotification(stats.join(' | '), 'info');
+        }
+    }
+
+// Configurar interacciones específicas para equipos
+    setupEquipoInteractions(equipos) {
+        // Agregar eventos personalizados para equipos
+        equipos.forEach(equipo => {
+            // Aquí puedes agregar lógica específica como:
+            // - Click para abrir detalles del equipo
+            // - Hover para mostrar información rápida
+            // - Colores diferentes según estado de inspección
+
+            console.log(`🔧 Equipo configurado: ${equipo.identificador} (${equipo.tipo})`);
+        });
+    }
+
+// Función auxiliar para generar thumbnail de fallback
+    generateFallbackThumbnail(tipo) {
+        const colors = {
+            'antena': '2196F3',
+            'repetidor': '4CAF50',
+            'base': 'FF9800',
+            'movil': '9C27B0',
+            'ejemplo': 'E91E63',
+            'unknown': '607D8B',
+            'default': 'F44336'
+        };
+
+        const color = colors[tipo] || colors['default'];
+        return `https://via.placeholder.com/200x120/${color}/white?text=${encodeURIComponent(tipo.toUpperCase())}`;
+    }
+
+// Función de fallback en caso de error
+    loadFallbackEquipos() {
+        console.warn('Cargando equipos de fallback...');
+        const fallbackEquipos = [
+            {
+                id: 'fallback_1',
+                latitude: -12.0464,
+                longitude: -77.0428,
+                filename: "Equipo_Fallback_360.jpg",
+                address: "Equipo de ejemplo - Datos no disponibles",
+                thumbnail: this.generateFallbackThumbnail('ejemplo'),
+                tipo: 'ejemplo',
+                estado: 'activo',
+                nombre: 'Equipo de Ejemplo'
+            }
+        ];
+
+        window.dataManager.setPanoramas(fallbackEquipos);
+        this.showNotification('Se cargaron equipos de ejemplo (datos no disponibles)', 'warning');
+    }
+
+// Función para mostrar información de la ruta
+    showRutaInfo(rutaInfo) {
+        const infoText = [];
+
+        if (rutaInfo.total_equipos) {
+            infoText.push(`📊 Total equipos: ${rutaInfo.total_equipos}`);
+        }
+
+        if (rutaInfo.distancia_km) {
+            infoText.push(`📏 Distancia: ${rutaInfo.distancia_km} km`);
+        }
+
+        if (rutaInfo.tiempo_estimado_minutos) {
+            infoText.push(`⏱️ Tiempo estimado: ${rutaInfo.tiempo_estimado_minutos} min`);
+        }
+
+        if (rutaInfo.estado) {
+            infoText.push(`📋 Estado: ${rutaInfo.estado}`);
+        }
+
+        if (infoText.length > 0) {
+            this.showNotification(infoText.join(' | '), 'info');
+        }
+    }
+
+// Función para mostrar notificaciones (reutilizada)
+    showNotification(message, type = 'info') {
+        const container = document.getElementById('notifications-container');
+        if (!container) return;
+
+        const notification = document.createElement('div');
+        const bgColor = {
+            'success': 'bg-green-500',
+            'error': 'bg-red-500',
+            'warning': 'bg-yellow-500',
+            'info': 'bg-blue-500'
+        }[type] || 'bg-gray-500';
+
+        notification.className = `${bgColor} text-white px-4 py-2 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full opacity-0 max-w-md`;
+        notification.innerHTML = `
+        <div class="flex items-center space-x-2">
+            <span class="text-sm">${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="text-white/70 hover:text-white ml-2">×</button>
+        </div>
+    `;
+
+        container.appendChild(notification);
+
+        // Animación de entrada
+        setTimeout(() => {
+            notification.classList.remove('translate-x-full', 'opacity-0');
+        }, 100);
+
+        // Auto-remover después de 8 segundos para mensajes informativos
+        const autoRemoveTime = type === 'info' ? 8000 : 5000;
+        setTimeout(() => {
+            notification.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, autoRemoveTime);
     }
 
     // Actualizar marcadores de panoramas
@@ -508,7 +881,7 @@ class MapController {
     updateLocationListActive(panoramaId) {
         const items = document.querySelectorAll('#location-list li');
         items.forEach(item => {
-            item.classList.toggle('active', item.dataset.panoramaId == panoramaId);
+            item.classList.toggle('active', item.dataset.panoramaId === panoramaId);
         });
     }
 
@@ -629,6 +1002,24 @@ class MapController {
 
         this.updateLocationListActive(null);
     }
+
+    showEquipoViewer(equipo) {
+        const modal = document.getElementById('panorama-modal');
+        const details = document.getElementById('panorama-details');
+
+        if (modal && details) {
+            details.innerHTML = `
+            <strong>Equipo:</strong> ${equipo.nombre}<br>
+            <strong>Tipo:</strong> ${equipo.tipo}<br>
+            <strong>Dirección:</strong> ${equipo.address}<br>
+            <strong>Coordenadas:</strong> ${equipo.latitude.toFixed(6)}, ${equipo.longitude.toFixed(6)}<br>
+            <strong>Estado:</strong> ${equipo.estado}
+        `;
+            modal.style.display = 'flex';
+        }
+    }
+
+
 }
 
 // Inicialización cuando el DOM esté listo
@@ -647,4 +1038,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
 
     console.log('Aplicación inicializada');
+});
+
+
+// Cerrar modal
+document.getElementById('close-modal')?.addEventListener('click', function() {
+    const modal = document.getElementById('panorama-modal');
+    if (modal) modal.style.display = 'none';
 });
