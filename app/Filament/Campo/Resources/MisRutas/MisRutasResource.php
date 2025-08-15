@@ -5,6 +5,7 @@ namespace App\Filament\Campo\Resources\MisRutas;
 use App\Filament\Campo\Resources\MisRutas\Pages\CreateMisRutas;
 use App\Filament\Campo\Resources\MisRutas\Pages\EditMisRutas;
 use App\Filament\Campo\Resources\MisRutas\Pages\ListMisRutas;
+use App\Filament\Campo\Resources\MisRutas\Pages\MapaInteractivo;
 use App\Filament\Campo\Resources\MisRutas\Pages\ViewMisRutas;
 use App\Filament\Campo\Resources\MisRutas\Schemas\MisRutasForm;
 use App\Filament\Campo\Resources\MisRutas\Schemas\MisRutasInfolist;
@@ -23,6 +24,11 @@ class MisRutasResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'misrutas';
+
+    public function mount(): void
+    {
+        dd('MapaInteractivo cargado');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -52,7 +58,7 @@ class MisRutasResource extends Resource
             'index' => ListMisRutas::route('/'),
             'create' => CreateMisRutas::route('/create'),
             'view' => ViewMisRutas::route('/{record}'),
-            'edit' => EditMisRutas::route('/{record}/edit'),
+            'edit' => EditMisRutas::route('/{record}/edit')
         ];
     }
 }

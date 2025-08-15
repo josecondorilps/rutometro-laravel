@@ -52,7 +52,6 @@ class MisRutasTable
             ->filters([
             ])
             ->actions([
-                // ✅ Acción para desasignar
                 Action::make('desasignar')
                     ->label('Desasignar')
                     ->icon('heroicon-o-x-mark')

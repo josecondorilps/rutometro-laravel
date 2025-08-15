@@ -16,7 +16,8 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
-class ClienteResource extends Resource
+class
+ClienteResource extends Resource
 {
     protected static ?string $model = Cliente::class;
 

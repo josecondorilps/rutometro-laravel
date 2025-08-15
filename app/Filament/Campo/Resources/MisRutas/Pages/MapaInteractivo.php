@@ -2,13 +2,11 @@
 
 namespace App\Filament\Campo\Resources\MisRutas\Pages;
 
-use App\Filament\Campo\Resources\MisRutas\MisRutasResource;
+use App\Filament\Campo\Resources\MisRutas\MisRutasResource; // ← Mantener esta línea (era correcta)
 use App\Models\MisRutas;
-use Filament\Actions\CreateAction;
-use Filament\Actions\EditAction;
-use Filament\Resources\Pages\ViewRecord;
+use Filament\Resources\Pages\Page;
 
-class ViewMisRutas extends ViewRecord
+class MapaInteractivo extends Page
 {
     protected static string $resource = MisRutasResource::class;
 
@@ -19,18 +17,11 @@ class ViewMisRutas extends ViewRecord
     protected static ?string $navigationLabel = 'Mapa Interactivo';
 
 
-
     // Pasar datos a la vista
     protected function getViewData(): array
     {
         return [
             'misRutas' => MisRutas::all(),
-        ];
-    }
-    protected function getHeaderActions(): array
-    {
-        return [
-            CreateAction::make(),
         ];
     }
 }
